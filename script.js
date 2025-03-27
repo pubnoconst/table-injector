@@ -1,17 +1,50 @@
 // ==UserScript==
-// @name        CasPhone Table Enhancement
-// @namespace   casphone-table-enhancer-macos
+// @name        Casphone Connect Table Enhancement
+// @namespace   casphone-table-enhancer
 // @match       https://connect.casphone.com.au/*
 // @grant       none
-// @version     1.7
-// @author      Hossain (macOS style by T3 Chat)
-// @description Adds interactive controls with searchable dropdowns (macOS style) above tables on CasPhone connect portal
+// @version     1.8
+// @author      Hossain
+// @description Adds interactive controls (macOS style) with price copy button above tables on CasPhone connect portal
 // ==/UserScript==
 
 (function () {
   "use strict";
 
-  // Add CSS to the page
+  // --- Toast Notification Function ---
+  let toastTimeout;
+  function showToast(message) {
+    // Remove existing toast if any
+    const existingToast = document.getElementById("clipboard-toast-userscript");
+    if (existingToast) {
+      existingToast.remove();
+      clearTimeout(toastTimeout);
+    }
+
+    // Create toast element
+    const toast = document.createElement("div");
+    toast.id = "clipboard-toast-userscript";
+    toast.className = "clipboard-toast";
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    // Trigger fade in
+    requestAnimationFrame(() => {
+      toast.classList.add("show");
+    });
+
+    // Set timeout to fade out and remove
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove("show");
+      // Remove element after fade out transition completes
+      toast.addEventListener("transitionend", () => toast.remove(), {
+        once: true,
+      });
+    }, 2500); // Show toast for 2.5 seconds
+  }
+
+  // --- Add CSS to the page ---
   const style = document.createElement("style");
   style.textContent = `
     /* macOS Style Enhancements */
@@ -78,7 +111,6 @@
       box-shadow: 0 0 0 3px var(--macos-focus-ring-color), 0 0.5px 1px rgba(0,0,0,0.05) inset; /* Blue focus ring */
     }
 
-    /* Remove hover shadow, less common in macOS inputs */
     .searchable-dropdown input:hover,
     .model-search-input:hover {
        border-color: rgba(0, 0, 0, 0.3);
@@ -138,18 +170,46 @@
       background-color: var(--macos-control-bg); /* Match container background */
       border-radius: var(--macos-border-radius-small);
       border: 0.5px solid var(--macos-border-color);
-      min-width: 140px; /* Adjusted min-width */
+      min-width: 100px; /* Adjusted min-width slightly */
       min-height: calc(13px + 2 * var(--macos-padding-vertical) + 1px); /* Match input height */
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 400; /* Regular weight */
+      font-weight: 500; /* Medium weight for price */
       font-family: var(--macos-system-font);
       font-size: 13px;
-      color: #555; /* Default text color */
+      color: #333; /* Default text color */
       box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset; /* Subtle inner top shadow */
       text-align: center;
+      cursor: pointer; /* Make it look clickable */
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+      user-select: none; /* Prevent text selection on click */
     }
+
+    .result-display:hover {
+        background-color: #e8e8ed; /* Slightly darker on hover */
+        border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .result-display:active {
+        background-color: #e1e1e6; /* Even darker when pressed */
+        transform: scale(0.98); /* Subtle press effect */
+    }
+
+    /* Style for placeholder text */
+    .result-display.placeholder {
+        color: #777;
+        font-weight: 400;
+        cursor: default; /* Not clickable when placeholder */
+    }
+    .result-display.placeholder:hover {
+        background-color: var(--macos-control-bg); /* No hover effect */
+        border-color: var(--macos-border-color);
+    }
+     .result-display.placeholder:active {
+        transform: none; /* No active effect */
+    }
+
 
     .dropdown-label,
     .model-search-label {
@@ -158,59 +218,75 @@
       font-family: var(--macos-system-font);
       font-size: 13px;
       color: #444; /* Slightly darker label color */
+      user-select: none;
     }
 
     .model-search-container {
       display: flex;
       align-items: center;
-      /* margin-bottom: 12px; - Handled by parent gap */
     }
 
-    /* Specific adjustments for model search input if needed */
     .model-search-input {
       width: 150px; /* Slightly smaller width for model search */
     }
 
-    /* Style for model search feedback */
     .model-search-input.match-found {
-        background-color: #e6ffed; /* Light green for match */
+        background-color: #e6ffed;
         border-color: #a0d8af;
     }
     .model-search-input.no-match {
-        background-color: #ffebee; /* Light red for no match */
+        background-color: #ffebee;
         border-color: #f1b0b7;
     }
 
-    /* Container for the row/column dropdowns + result */
     .controls-container {
         display: flex;
         align-items: center;
         gap: 16px;
     }
 
-    /* Container for label + dropdown */
     .dropdown-input-container {
         display: flex;
         align-items: center;
-        gap: 8px; /* Gap between label and input */
+        gap: 8px;
     }
 
+    /* Toast Notification Styles */
+    .clipboard-toast {
+      position: fixed;
+      bottom: 20px; /* Position near bottom */
+      left: 50%;
+      transform: translateX(-50%) translateY(20px); /* Start off-screen */
+      background-color: rgba(40, 40, 40, 0.85); /* Dark semi-transparent */
+      color: white;
+      padding: 10px 20px;
+      border-radius: 15px; /* Pill shape */
+      font-family: var(--macos-system-font);
+      font-size: 13px;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none; /* Don't block clicks */
+      backdrop-filter: blur(10px); /* Frosted glass */
+      -webkit-backdrop-filter: blur(10px);
+      border: 0.5px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .clipboard-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0); /* Slide in */
+    }
   `;
   document.head.appendChild(style);
 
   // Wait for page to fully load
   window.addEventListener("load", function () {
-    // Find all tables on the page
     const tables = document.querySelectorAll("table");
 
     tables.forEach((table, tableIndex) => {
-      // Check if the table has rows (more than just a header)
       const tableRows = table.querySelectorAll("tr");
-      if (tableRows.length <= 1) {
-        return; // Skip tables with no data rows
-      }
+      if (tableRows.length <= 1) return;
 
-      // Get first row and first column to check for "Model"
       const headerRow =
         table.querySelector("thead tr") || table.querySelector("tr");
       if (!headerRow) return;
@@ -220,32 +296,23 @@
           ? headerRow.querySelectorAll("th")
           : headerRow.querySelectorAll("td");
 
-      // Check if any header cell contains "Model"
       let hasModel = false;
       headerCells.forEach((cell) => {
-        if (cell.textContent.includes("Model")) {
-          hasModel = true;
-        }
+        if (cell.textContent.includes("Model")) hasModel = true;
       });
-
-      // Check first column for "Model"
-      for (let i = 0; i < tableRows.length; i++) {
-        const firstCell = tableRows[i].querySelector("td, th");
-        if (firstCell && firstCell.textContent.includes("Model")) {
-          hasModel = true;
-          break;
+      if (!hasModel) {
+        for (let i = 0; i < tableRows.length; i++) {
+          const firstCell = tableRows[i].querySelector("td, th");
+          if (firstCell && firstCell.textContent.includes("Model")) {
+            hasModel = true;
+            break;
+          }
         }
       }
+      if (!hasModel) return;
 
-      // Skip if no "Model" text found
-      if (!hasModel) {
-        return;
-      }
-
-      // Look for a row with "Model Number" in the first cell
       let modelNumberRow = null;
       let modelNumberMap = {};
-
       for (let i = 0; i < tableRows.length; i++) {
         const firstCell = tableRows[i].querySelector("td, th");
         if (
@@ -257,95 +324,100 @@
         }
       }
 
-      // Create container for centering
       const containerDiv = document.createElement("div");
       containerDiv.className = "table-enhancement-container";
-
-      // Create the enhancement div
       const enhancementDiv = document.createElement("div");
       enhancementDiv.className = "table-enhancement";
       enhancementDiv.id = `table-enhancement-${tableIndex}`;
-      // enhancementDiv.style.flexDirection = "column"; // Set in CSS
-
       containerDiv.appendChild(enhancementDiv);
 
-      // Create model number search if we found a model number row
       let modelSearchInput = null;
       if (modelNumberRow) {
         const modelSearchContainer = document.createElement("div");
         modelSearchContainer.className = "model-search-container";
-
         const modelSearchLabel = document.createElement("span");
         modelSearchLabel.className = "model-search-label";
-        modelSearchLabel.textContent = "Model No:"; // Shortened label
-
+        modelSearchLabel.textContent = "Model No:";
         modelSearchInput = document.createElement("input");
         modelSearchInput.type = "text";
         modelSearchInput.className = "model-search-input";
         modelSearchInput.placeholder = "e.g. A1600";
-
         modelSearchContainer.appendChild(modelSearchLabel);
         modelSearchContainer.appendChild(modelSearchInput);
-
         enhancementDiv.appendChild(modelSearchContainer);
 
-        // Process model numbers from the row
         const cells = modelNumberRow.querySelectorAll("td, th");
         for (let i = 1; i < cells.length; i++) {
           const cellText = cells[i].textContent.trim();
-          // Split by comma and handle multiple model numbers per cell
           if (cellText.length > 0 && cellText !== "-") {
-            const modelNumbers = cellText.split(/,\s*/);
-            modelNumbers.forEach((modelNum) => {
+            cellText.split(/,\s*/).forEach((modelNum) => {
               modelNumberMap[modelNum.trim()] = i;
             });
           }
         }
       }
 
-      // Create controls container (for dropdowns and result)
       const controlsContainer = document.createElement("div");
-      controlsContainer.className = "controls-container"; // Use class for styling
+      controlsContainer.className = "controls-container";
       enhancementDiv.appendChild(controlsContainer);
 
-      // Create column dropdown container (Label + Dropdown)
       const columnContainer = document.createElement("div");
-      columnContainer.className = "dropdown-input-container"; // Use class
-
+      columnContainer.className = "dropdown-input-container";
       const columnLabel = document.createElement("span");
       columnLabel.className = "dropdown-label";
       columnLabel.textContent = "Device:";
       columnContainer.appendChild(columnLabel);
-
-      // Create searchable column dropdown
       const columnDropdown = createSearchableDropdown(
         `column-dropdown-${tableIndex}`,
         "Search devices..."
       );
       columnContainer.appendChild(columnDropdown.container);
 
-      // Create row dropdown container (Label + Dropdown)
       const rowContainer = document.createElement("div");
-      rowContainer.className = "dropdown-input-container"; // Use class
-
+      rowContainer.className = "dropdown-input-container";
       const rowLabel = document.createElement("span");
       rowLabel.className = "dropdown-label";
       rowLabel.textContent = "Part/Repair:";
       rowContainer.appendChild(rowLabel);
-
-      // Create searchable row dropdown
       const rowDropdown = createSearchableDropdown(
         `row-dropdown-${tableIndex}`,
         "Search parts/repairs..."
       );
       rowContainer.appendChild(rowDropdown.container);
 
-      // Create result display
       const resultDisplay = document.createElement("div");
-      resultDisplay.className = "result-display";
-      resultDisplay.textContent = "Select options"; // Updated placeholder
+      resultDisplay.className = "result-display placeholder"; // Start as placeholder
+      resultDisplay.textContent = "Select options";
 
-      // Collect column and row data
+      // --- Add Click Listener for Copy ---
+      resultDisplay.addEventListener("click", () => {
+        // Only copy if it's not showing placeholder text
+        if (resultDisplay.classList.contains("placeholder")) {
+          return;
+        }
+
+        const currentText = resultDisplay.textContent;
+        // Remove non-numeric characters except decimal point
+        const numericValue = currentText.replace(/[^\d.]/g, "");
+
+        if (numericValue) {
+          navigator.clipboard
+            .writeText(numericValue)
+            .then(() => {
+              showToast(`Copied: ${numericValue}`);
+            })
+            .catch((err) => {
+              console.error("CasPhone Enhancer: Failed to copy text: ", err);
+              showToast("Copy failed!");
+            });
+        } else {
+          console.warn("CasPhone Enhancer: No numeric value to copy.");
+          // Optionally show a different toast or do nothing
+          // showToast("No price to copy");
+        }
+      });
+      // --- End Click Listener ---
+
       const columns = [];
       const rows = [];
 
@@ -354,10 +426,8 @@
           headerRow.querySelectorAll("th").length > 0
             ? headerRow.querySelectorAll("th")
             : headerRow.querySelectorAll("td");
-
         currentHeaderCells.forEach((cell, index) => {
           if (index > 0) {
-            // Skip first column
             columns.push({
               value: index.toString(),
               text: cell.textContent.trim() || `Column ${index}`,
@@ -367,43 +437,37 @@
         });
       }
 
-      // Get row data (from first column)
       for (let i = 1; i < tableRows.length; i++) {
         const firstCell = tableRows[i].querySelector("td");
-        if (firstCell) {
-          // Skip rows with "Model Number" in the first cell
-          if (!firstCell.textContent.trim().includes("Model Number")) {
-            rows.push({
-              value: i.toString(),
-              text: firstCell.textContent.trim() || `Row ${i}`,
-              element: tableRows[i],
-            });
-          }
+        if (
+          firstCell &&
+          !firstCell.textContent.trim().includes("Model Number")
+        ) {
+          rows.push({
+            value: i.toString(),
+            text: firstCell.textContent.trim() || `Row ${i}`,
+            element: tableRows[i],
+          });
         }
       }
 
-      // Only continue if we have both rows and columns
       if (rows.length === 0 || columns.length === 0) {
-        console.log("Table Enhancer: Skipping table, no usable rows/columns found.");
-        containerDiv.remove(); // Remove the container if not used
+        console.log("Table Enhancer: Skipping table, no usable rows/columns.");
+        containerDiv.remove();
         return;
       }
 
-      // Populate dropdowns
       populateDropdown(columnDropdown, columns);
       populateDropdown(rowDropdown, rows);
 
-      // Store selected values
       let selectedColumn = null;
       let selectedRow = null;
 
-      // Handle selection events
       columnDropdown.onSelect = (item) => {
         selectedColumn = item;
         updateResult();
-        // Clear model search feedback if column changed manually
         if (modelSearchInput) {
-            modelSearchInput.classList.remove("match-found", "no-match");
+          modelSearchInput.classList.remove("match-found", "no-match");
         }
       };
 
@@ -412,20 +476,16 @@
         updateResult();
       };
 
-      // Add model number search event handler
       if (modelSearchInput) {
         modelSearchInput.addEventListener("input", (e) => {
-          const searchTerm = e.target.value.trim().toUpperCase(); // Case-insensitive search
-          modelSearchInput.classList.remove("match-found", "no-match"); // Clear previous feedback
-
+          const searchTerm = e.target.value.trim().toUpperCase();
+          modelSearchInput.classList.remove("match-found", "no-match");
           if (searchTerm.length >= 2) {
             let foundMatch = false;
-            // Find model numbers that contain the search term
             for (const [modelNum, colIndex] of Object.entries(
               modelNumberMap
             )) {
               if (modelNum.toUpperCase().includes(searchTerm)) {
-                // Find the matching column
                 const matchedColumn = columns.find(
                   (col) => col.value === colIndex.toString()
                 );
@@ -433,128 +493,101 @@
                   columnDropdown.setSelected(matchedColumn);
                   modelSearchInput.classList.add("match-found");
                   foundMatch = true;
-                  break; // Stop after first match
+                  break;
                 }
               }
             }
-            if (!foundMatch) {
-              modelSearchInput.classList.add("no-match");
-            }
+            if (!foundMatch) modelSearchInput.classList.add("no-match");
           }
         });
       }
 
-      // Function to update the result display
       function updateResult() {
         if (selectedRow && selectedColumn) {
           const rowIndex = parseInt(selectedRow.value);
           const colIndex = parseInt(selectedColumn.value);
-
-          // Re-query rows in case the table structure changes dynamically
           const currentTableRows = table.querySelectorAll("tr");
+
           if (rowIndex < currentTableRows.length) {
-              const cells = currentTableRows[rowIndex].querySelectorAll("td");
-              if (colIndex < cells.length) {
-                  const cell = cells[colIndex];
-                  resultDisplay.textContent = cell.textContent.trim() || "-"; // Show '-' if empty
-                  resultDisplay.style.color = "#333"; // Reset color
-              } else {
-                  resultDisplay.textContent = "N/A";
-                  resultDisplay.style.color = "#999";
-              }
+            const cells = currentTableRows[rowIndex].querySelectorAll("td");
+            if (colIndex < cells.length) {
+              const cell = cells[colIndex];
+              resultDisplay.textContent = cell.textContent.trim() || "-";
+              resultDisplay.classList.remove("placeholder"); // Make it look active
+              resultDisplay.style.color = ""; // Reset color
+            } else {
+              resultDisplay.textContent = "N/A";
+              resultDisplay.classList.add("placeholder"); // Make it look inactive
+              resultDisplay.style.color = ""; // Use placeholder class style
+            }
           } else {
-              resultDisplay.textContent = "Error"; // Row index out of bounds
-              resultDisplay.style.color = "#cc0000";
+            resultDisplay.textContent = "Error";
+            resultDisplay.classList.add("placeholder");
+            resultDisplay.style.color = "#cc0000";
           }
         } else {
           resultDisplay.textContent = "Select options";
-          resultDisplay.style.color = "#777"; // Dimmed placeholder color
+          resultDisplay.classList.add("placeholder"); // Ensure placeholder style
+          resultDisplay.style.color = ""; // Use placeholder class style
         }
       }
 
-      // Add elements to the controls container
       controlsContainer.appendChild(columnContainer);
       controlsContainer.appendChild(rowContainer);
       controlsContainer.appendChild(resultDisplay);
-
-      // Insert the enhancement div before the table
       table.parentNode.insertBefore(containerDiv, table);
     });
 
-    // Helper function to create a searchable dropdown
     function createSearchableDropdown(id, placeholder) {
       const container = document.createElement("div");
       container.className = "searchable-dropdown";
-
       const input = document.createElement("input");
       input.type = "text";
       input.placeholder = placeholder;
       input.id = id;
-      input.setAttribute("autocomplete", "off"); // Prevent browser autocomplete
-
+      input.setAttribute("autocomplete", "off");
       const dropdown = document.createElement("div");
       dropdown.className = "dropdown-menu";
-
       container.appendChild(input);
       container.appendChild(dropdown);
 
-      // Setup event listeners
       let selectedItem = null;
       let onSelectCallback = null;
-      let blurTimeout = null; // To handle blur correctly
+      let blurTimeout = null;
 
-      // Show dropdown on input focus
       input.addEventListener("focus", () => {
-        clearTimeout(blurTimeout); // Cancel any pending blur hide
-        filterDropdownItems(input.value); // Filter based on current value
+        clearTimeout(blurTimeout);
+        filterDropdownItems(input.value);
         dropdown.classList.add("show");
       });
 
-      // Filter dropdown items as user types
       input.addEventListener("input", () => {
-        selectedItem = null; // Clear selection if user types
+        selectedItem = null;
         filterDropdownItems(input.value);
-        // Ensure dropdown stays open while typing
         if (!dropdown.classList.contains("show")) {
-            dropdown.classList.add("show");
+          dropdown.classList.add("show");
         }
       });
 
-      // Hide dropdown on blur, with a small delay to allow clicks on items
       input.addEventListener("blur", () => {
         blurTimeout = setTimeout(() => {
-            dropdown.classList.remove("show");
-            // Restore selected item text if input is empty or doesn't match selection
-            if (selectedItem) {
-                input.value = selectedItem.text || "";
-            } else {
-                // If nothing selected and input is cleared, keep it clear
-                // If input has text but no match, keep the text? Or clear? Let's keep it.
-            }
-        }, 150); // Delay ms
+          dropdown.classList.remove("show");
+          if (selectedItem) {
+            input.value = selectedItem.text || "";
+          }
+        }, 150);
       });
 
-      // Helper to filter items
       function filterDropdownItems(searchTerm) {
-          const term = searchTerm.toLowerCase();
-          let hasVisibleItems = false;
-          Array.from(dropdown.children).forEach(child => {
-              const itemText = child.textContent.toLowerCase();
-              const isVisible = itemText.includes(term);
-              child.style.display = isVisible ? "" : "none";
-              if (isVisible) hasVisibleItems = true;
-          });
-          // Maybe add a "No results" item if needed
-          // console.log("Has visible items:", hasVisibleItems);
+        const term = searchTerm.toLowerCase();
+        Array.from(dropdown.children).forEach((child) => {
+          const itemText = child.textContent.toLowerCase();
+          child.style.display = itemText.includes(term) ? "" : "none";
+        });
       }
 
-
-      // Prevent form submission if enter is pressed in the input
       input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          // Optional: Select the first visible item on Enter?
-        }
+        if (e.key === "Enter") e.preventDefault();
       });
 
       return {
@@ -570,37 +603,31 @@
         setSelected: function (item) {
           selectedItem = item;
           input.value = item ? item.text : "";
-          filterDropdownItems(input.value); // Re-filter to show the selected one prominently
+          filterDropdownItems(input.value);
           if (onSelectCallback) onSelectCallback(item);
         },
-        populate: function (items) { // Renamed from global populateDropdown
-            dropdown.innerHTML = ""; // Clear existing items
-
-            items.forEach(item => {
-                const option = document.createElement("div");
-                option.className = "dropdown-item";
-                option.textContent = item.text;
-                option.dataset.value = item.value;
-
-                // Use mousedown instead of click to register before blur hides the dropdown
-                option.addEventListener("mousedown", (e) => {
-                    e.preventDefault(); // Prevent input from losing focus immediately
-                    this.setSelected(item);
-                    clearTimeout(blurTimeout); // Cancel hiding dropdown
-                    dropdown.classList.remove("show"); // Manually hide after selection
-                    input.blur(); // Unfocus the input after selection
-                });
-
-                dropdown.appendChild(option);
+        populate: function (items) {
+          dropdown.innerHTML = "";
+          items.forEach((item) => {
+            const option = document.createElement("div");
+            option.className = "dropdown-item";
+            option.textContent = item.text;
+            option.dataset.value = item.value;
+            option.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              this.setSelected(item);
+              clearTimeout(blurTimeout);
+              dropdown.classList.remove("show");
+              input.blur();
             });
-        }
+            dropdown.appendChild(option);
+          });
+        },
       };
     }
 
-    // Use the populate method specific to each dropdown instance
     function populateDropdown(dropdownInstance, items) {
-        dropdownInstance.populate(items);
+      dropdownInstance.populate(items);
     }
-
   });
 })();
