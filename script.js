@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name        Casphone Connect Table Enhancement
-// @namespace   casphone-table-enhancer
-// @match       https://connect.casphone.com.au/*
-// @grant       none
-// @version     1.8
-// @author      Hossain
-// @description Adds interactive controls (macOS style) with price copy button above tables on CasPhone connect portal
+// @name         Casphone Connect Table Enhancement
+// @namespace    casphone-table-enhancer
+// @version      1.8
+// @description  Adds interactive controls with price copy button above tables on Casphone Connect portal
+// @author       Hossain
+// @match        https://www.connect.casphone.com.au/*
+// @grant        GM_setClipboard
 // ==/UserScript==
 
 (function () {
@@ -14,14 +14,12 @@
   // --- Toast Notification Function ---
   let toastTimeout;
   function showToast(message) {
-    // Remove existing toast if any
     const existingToast = document.getElementById("clipboard-toast-userscript");
     if (existingToast) {
       existingToast.remove();
       clearTimeout(toastTimeout);
     }
 
-    // Create toast element
     const toast = document.createElement("div");
     toast.id = "clipboard-toast-userscript";
     toast.className = "clipboard-toast";
@@ -29,19 +27,14 @@
 
     document.body.appendChild(toast);
 
-    // Trigger fade in
     requestAnimationFrame(() => {
       toast.classList.add("show");
     });
 
-    // Set timeout to fade out and remove
     toastTimeout = setTimeout(() => {
       toast.classList.remove("show");
-      // Remove element after fade out transition completes
-      toast.addEventListener("transitionend", () => toast.remove(), {
-        once: true,
-      });
-    }, 2500); // Show toast for 2.5 seconds
+      toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+    }, 2500);
   }
 
   // --- Add CSS to the page ---
@@ -52,7 +45,7 @@
       --macos-system-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
       --macos-border-color: rgba(0, 0, 0, 0.15);
       --macos-focus-ring-color: rgba(0, 122, 255, 0.3);
-      --macos-control-bg: #f2f2f7; /* Light mode control background */
+      --macos-control-bg: #f2f2f7;
       --macos-control-bg-hover: rgba(0, 0, 0, 0.05);
       --macos-selection-color: rgba(0, 122, 255, 0.1);
       --macos-border-radius-small: 6px;
@@ -66,23 +59,23 @@
       display: flex;
       justify-content: center;
       width: 100%;
-      margin: 16px 0; /* Increased margin */
+      margin: 16px 0;
     }
 
     .table-enhancement {
       display: inline-flex;
-      flex-direction: column; /* Keep column layout */
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px; /* Adjusted gap */
-      padding: 16px 20px; /* Increased padding */
+      gap: 12px;
+      padding: 16px 20px;
       border-radius: var(--macos-border-radius-large);
       background-color: var(--macos-control-bg);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05); /* Subtle shadow */
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05);
       font-family: var(--macos-system-font);
-      font-size: 13px; /* Typical macOS UI font size */
+      font-size: 13px;
       width: fit-content;
-      border: 0.5px solid rgba(0,0,0,0.08); /* Subtle border */
+      border: 0.5px solid rgba(0,0,0,0.08);
     }
 
     .searchable-dropdown {
@@ -90,25 +83,24 @@
       display: inline-block;
     }
 
-    /* Style for both dropdown and model search inputs */
     .searchable-dropdown input,
     .model-search-input {
       padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
       border-radius: var(--macos-border-radius-small);
       border: 0.5px solid var(--macos-border-color);
-      width: 180px; /* Adjusted width */
+      width: 180px;
       font-size: 13px;
       font-family: var(--macos-system-font);
       outline: none;
       background-color: #ffffff;
       transition: box-shadow 0.15s ease-in-out, border-color 0.15s ease-in-out;
-      box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset; /* Subtle inner top shadow */
+      box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset;
     }
 
     .searchable-dropdown input:focus,
     .model-search-input:focus {
       border-color: rgba(0, 122, 255, 0.8);
-      box-shadow: 0 0 0 3px var(--macos-focus-ring-color), 0 0.5px 1px rgba(0,0,0,0.05) inset; /* Blue focus ring */
+      box-shadow: 0 0 0 3px var(--macos-focus-ring-color), 0 0.5px 1px rgba(0,0,0,0.05) inset;
     }
 
     .searchable-dropdown input:hover,
@@ -118,29 +110,27 @@
 
     .dropdown-menu {
       position: absolute;
-      top: calc(100% + 4px); /* Slightly detached */
+      top: calc(100% + 4px);
       left: 0;
       z-index: 1000;
       display: none;
-      min-width: 220px; /* Increased min-width */
-      max-height: 280px; /* Adjusted max-height */
+      min-width: 220px;
+      max-height: 280px;
       overflow-y: auto;
-      padding: 5px; /* Padding around items */
-      margin-top: 0; /* Removed margin-top, handled by 'top' */
-      background-color: rgba(248, 248, 248, 0.7); /* Semi-transparent light background */
-      border: 0.5px solid rgba(0, 0, 0, 0.15); /* Subtle border */
+      padding: 5px;
+      background-color: rgba(248, 248, 248, 0.7);
+      border: 0.5px solid rgba(0, 0, 0, 0.15);
       border-radius: var(--macos-border-radius-medium);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); /* macOS style shadow */
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
       font-family: var(--macos-system-font);
       font-size: 13px;
     }
 
-    /* Frosted Glass Effect */
     @supports ((-webkit-backdrop-filter: blur(25px)) or (backdrop-filter: blur(25px))) {
       .dropdown-menu {
         -webkit-backdrop-filter: blur(25px) saturate(180%);
         backdrop-filter: blur(25px) saturate(180%);
-        background-color: rgba(248, 248, 248, 0.7); /* Adjust alpha for blur */
+        background-color: rgba(248, 248, 248, 0.7);
       }
     }
 
@@ -150,74 +140,72 @@
 
     .dropdown-item {
       padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
-      color: #333; /* Standard text color */
-      cursor: default; /* macOS uses default cursor for menu items */
+      color: #333;
+      cursor: default;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      border-radius: var(--macos-border-radius-small); /* Consistent rounding */
-      margin: 0; /* Remove margin inside padding */
+      border-radius: var(--macos-border-radius-small);
+      margin: 0;
       transition: background-color 0.1s ease;
     }
 
     .dropdown-item:hover {
-      background-color: var(--macos-selection-color); /* Light blue hover */
-      color: #222; /* Slightly darker text on hover */
+      background-color: var(--macos-selection-color);
+      color: #222;
     }
 
     .result-display {
       padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
-      background-color: var(--macos-control-bg); /* Match container background */
+      background-color: var(--macos-control-bg);
       border-radius: var(--macos-border-radius-small);
       border: 0.5px solid var(--macos-border-color);
-      min-width: 100px; /* Adjusted min-width slightly */
-      min-height: calc(13px + 2 * var(--macos-padding-vertical) + 1px); /* Match input height */
+      min-width: 100px;
+      min-height: calc(13px + 2 * var(--macos-padding-vertical) + 1px);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 500; /* Medium weight for price */
+      font-weight: 500;
       font-family: var(--macos-system-font);
       font-size: 13px;
-      color: #333; /* Default text color */
-      box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset; /* Subtle inner top shadow */
+      color: #333;
+      box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset;
       text-align: center;
-      cursor: pointer; /* Make it look clickable */
+      cursor: pointer;
       transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
-      user-select: none; /* Prevent text selection on click */
+      user-select: none;
     }
 
     .result-display:hover {
-        background-color: #e8e8ed; /* Slightly darker on hover */
-        border-color: rgba(0, 0, 0, 0.25);
+      background-color: #e8e8ed;
+      border-color: rgba(0, 0, 0, 0.25);
     }
 
     .result-display:active {
-        background-color: #e1e1e6; /* Even darker when pressed */
-        transform: scale(0.98); /* Subtle press effect */
+      background-color: #e1e1e6;
+      transform: scale(0.98);
     }
 
-    /* Style for placeholder text */
     .result-display.placeholder {
-        color: #777;
-        font-weight: 400;
-        cursor: default; /* Not clickable when placeholder */
+      color: #777;
+      font-weight: 400;
+      cursor: default;
     }
     .result-display.placeholder:hover {
-        background-color: var(--macos-control-bg); /* No hover effect */
-        border-color: var(--macos-border-color);
+      background-color: var(--macos-control-bg);
+      border-color: var(--macos-border-color);
     }
-     .result-display.placeholder:active {
-        transform: none; /* No active effect */
+    .result-display.placeholder:active {
+      transform: none;
     }
-
 
     .dropdown-label,
     .model-search-label {
-      font-weight: 500; /* Medium weight for labels */
+      font-weight: 500;
       margin-right: 8px;
       font-family: var(--macos-system-font);
       font-size: 13px;
-      color: #444; /* Slightly darker label color */
+      color: #444;
       user-select: none;
     }
 
@@ -227,68 +215,69 @@
     }
 
     .model-search-input {
-      width: 150px; /* Slightly smaller width for model search */
+      width: 150px;
     }
 
     .model-search-input.match-found {
-        background-color: #e6ffed;
-        border-color: #a0d8af;
+      background-color: #e6ffed;
+      border-color: #a0d8af;
     }
     .model-search-input.no-match {
-        background-color: #ffebee;
-        border-color: #f1b0b7;
+      background-color: #ffebee;
+      border-color: #f1b0b7;
     }
 
     .controls-container {
-        display: flex;
-        align-items: center;
-        gap: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     .dropdown-input-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* Toast Notification Styles */
     .clipboard-toast {
       position: fixed;
-      bottom: 20px; /* Position near bottom */
+      bottom: 20px;
       left: 50%;
-      transform: translateX(-50%) translateY(20px); /* Start off-screen */
-      background-color: rgba(40, 40, 40, 0.85); /* Dark semi-transparent */
+      transform: translateX(-50%) translateY(20px);
+      background-color: rgba(40, 40, 40, 0.85);
       color: white;
       padding: 10px 20px;
-      border-radius: 15px; /* Pill shape */
+      border-radius: 15px;
       font-family: var(--macos-system-font);
       font-size: 13px;
       z-index: 9999;
       opacity: 0;
       transition: opacity 0.3s ease, transform 0.3s ease;
-      pointer-events: none; /* Don't block clicks */
-      backdrop-filter: blur(10px); /* Frosted glass */
+      pointer-events: none;
+      backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 0.5px solid rgba(255, 255, 255, 0.2);
     }
 
     .clipboard-toast.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0); /* Slide in */
+      transform: translateX(-50%) translateY(0);
     }
   `;
   document.head.appendChild(style);
 
-  // Wait for page to fully load
-  window.addEventListener("load", function () {
+  // --- Main Enhancement Function ---
+  function enhanceTables() {
     const tables = document.querySelectorAll("table");
 
     tables.forEach((table, tableIndex) => {
+      if (table.dataset.enhanced) return; // Prevent duplicate enhancements
+
       const tableRows = table.querySelectorAll("tr");
       if (tableRows.length <= 1) return;
 
-      const headerRow =
-        table.querySelector("thead tr") || table.querySelector("tr");
+      const headerRow = table.querySelector("thead tr") || table.querySelector("tr");
       if (!headerRow) return;
 
       const headerCells =
@@ -315,10 +304,7 @@
       let modelNumberMap = {};
       for (let i = 0; i < tableRows.length; i++) {
         const firstCell = tableRows[i].querySelector("td, th");
-        if (
-          firstCell &&
-          firstCell.textContent.trim().includes("Model Number")
-        ) {
+        if (firstCell && firstCell.textContent.trim().includes("Model Number")) {
           modelNumberRow = tableRows[i];
           break;
         }
@@ -367,10 +353,7 @@
       columnLabel.className = "dropdown-label";
       columnLabel.textContent = "Device:";
       columnContainer.appendChild(columnLabel);
-      const columnDropdown = createSearchableDropdown(
-        `column-dropdown-${tableIndex}`,
-        "Search devices..."
-      );
+      const columnDropdown = createSearchableDropdown(`column-dropdown-${tableIndex}`, "Search devices...");
       columnContainer.appendChild(columnDropdown.container);
 
       const rowContainer = document.createElement("div");
@@ -379,44 +362,22 @@
       rowLabel.className = "dropdown-label";
       rowLabel.textContent = "Part/Repair:";
       rowContainer.appendChild(rowLabel);
-      const rowDropdown = createSearchableDropdown(
-        `row-dropdown-${tableIndex}`,
-        "Search parts/repairs..."
-      );
+      const rowDropdown = createSearchableDropdown(`row-dropdown-${tableIndex}`, "Search parts/repairs...");
       rowContainer.appendChild(rowDropdown.container);
 
       const resultDisplay = document.createElement("div");
-      resultDisplay.className = "result-display placeholder"; // Start as placeholder
+      resultDisplay.className = "result-display placeholder";
       resultDisplay.textContent = "Select options";
 
-      // --- Add Click Listener for Copy ---
       resultDisplay.addEventListener("click", () => {
-        // Only copy if it's not showing placeholder text
-        if (resultDisplay.classList.contains("placeholder")) {
-          return;
-        }
-
+        if (resultDisplay.classList.contains("placeholder")) return;
         const currentText = resultDisplay.textContent;
-        // Remove non-numeric characters except decimal point
         const numericValue = currentText.replace(/[^\d.]/g, "");
-
         if (numericValue) {
-          navigator.clipboard
-            .writeText(numericValue)
-            .then(() => {
-              showToast(`Copied: ${numericValue}`);
-            })
-            .catch((err) => {
-              console.error("CasPhone Enhancer: Failed to copy text: ", err);
-              showToast("Copy failed!");
-            });
-        } else {
-          console.warn("CasPhone Enhancer: No numeric value to copy.");
-          // Optionally show a different toast or do nothing
-          // showToast("No price to copy");
+          GM_setClipboard(numericValue);
+          showToast(`Copied: ${numericValue}`);
         }
       });
-      // --- End Click Listener ---
 
       const columns = [];
       const rows = [];
@@ -439,10 +400,7 @@
 
       for (let i = 1; i < tableRows.length; i++) {
         const firstCell = tableRows[i].querySelector("td");
-        if (
-          firstCell &&
-          !firstCell.textContent.trim().includes("Model Number")
-        ) {
+        if (firstCell && !firstCell.textContent.trim().includes("Model Number")) {
           rows.push({
             value: i.toString(),
             text: firstCell.textContent.trim() || `Row ${i}`,
@@ -482,9 +440,7 @@
           modelSearchInput.classList.remove("match-found", "no-match");
           if (searchTerm.length >= 2) {
             let foundMatch = false;
-            for (const [modelNum, colIndex] of Object.entries(
-              modelNumberMap
-            )) {
+            for (const [modelNum, colIndex] of Object.entries(modelNumberMap)) {
               if (modelNum.toUpperCase().includes(searchTerm)) {
                 const matchedColumn = columns.find(
                   (col) => col.value === colIndex.toString()
@@ -507,18 +463,17 @@
           const rowIndex = parseInt(selectedRow.value);
           const colIndex = parseInt(selectedColumn.value);
           const currentTableRows = table.querySelectorAll("tr");
-
           if (rowIndex < currentTableRows.length) {
             const cells = currentTableRows[rowIndex].querySelectorAll("td");
             if (colIndex < cells.length) {
               const cell = cells[colIndex];
               resultDisplay.textContent = cell.textContent.trim() || "-";
-              resultDisplay.classList.remove("placeholder"); // Make it look active
-              resultDisplay.style.color = ""; // Reset color
+              resultDisplay.classList.remove("placeholder");
+              resultDisplay.style.color = "";
             } else {
               resultDisplay.textContent = "N/A";
-              resultDisplay.classList.add("placeholder"); // Make it look inactive
-              resultDisplay.style.color = ""; // Use placeholder class style
+              resultDisplay.classList.add("placeholder");
+              resultDisplay.style.color = "";
             }
           } else {
             resultDisplay.textContent = "Error";
@@ -527,8 +482,8 @@
           }
         } else {
           resultDisplay.textContent = "Select options";
-          resultDisplay.classList.add("placeholder"); // Ensure placeholder style
-          resultDisplay.style.color = ""; // Use placeholder class style
+          resultDisplay.classList.add("placeholder");
+          resultDisplay.style.color = "";
         }
       }
 
@@ -536,98 +491,116 @@
       controlsContainer.appendChild(rowContainer);
       controlsContainer.appendChild(resultDisplay);
       table.parentNode.insertBefore(containerDiv, table);
+      table.dataset.enhanced = "true";
+    });
+  }
+
+  function createSearchableDropdown(id, placeholder) {
+    const container = document.createElement("div");
+    container.className = "searchable-dropdown";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = placeholder;
+    input.id = id;
+    input.setAttribute("autocomplete", "off");
+    const dropdown = document.createElement("div");
+    dropdown.className = "dropdown-menu";
+    container.appendChild(input);
+    container.appendChild(dropdown);
+
+    let selectedItem = null;
+    let onSelectCallback = null;
+    let blurTimeout = null;
+
+    input.addEventListener("focus", () => {
+      clearTimeout(blurTimeout);
+      filterDropdownItems(input.value);
+      dropdown.classList.add("show");
     });
 
-    function createSearchableDropdown(id, placeholder) {
-      const container = document.createElement("div");
-      container.className = "searchable-dropdown";
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = placeholder;
-      input.id = id;
-      input.setAttribute("autocomplete", "off");
-      const dropdown = document.createElement("div");
-      dropdown.className = "dropdown-menu";
-      container.appendChild(input);
-      container.appendChild(dropdown);
-
-      let selectedItem = null;
-      let onSelectCallback = null;
-      let blurTimeout = null;
-
-      input.addEventListener("focus", () => {
-        clearTimeout(blurTimeout);
-        filterDropdownItems(input.value);
+    input.addEventListener("input", () => {
+      selectedItem = null;
+      filterDropdownItems(input.value);
+      if (!dropdown.classList.contains("show")) {
         dropdown.classList.add("show");
-      });
-
-      input.addEventListener("input", () => {
-        selectedItem = null;
-        filterDropdownItems(input.value);
-        if (!dropdown.classList.contains("show")) {
-          dropdown.classList.add("show");
-        }
-      });
-
-      input.addEventListener("blur", () => {
-        blurTimeout = setTimeout(() => {
-          dropdown.classList.remove("show");
-          if (selectedItem) {
-            input.value = selectedItem.text || "";
-          }
-        }, 150);
-      });
-
-      function filterDropdownItems(searchTerm) {
-        const term = searchTerm.toLowerCase();
-        Array.from(dropdown.children).forEach((child) => {
-          const itemText = child.textContent.toLowerCase();
-          child.style.display = itemText.includes(term) ? "" : "none";
-        });
       }
+    });
 
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") e.preventDefault();
+    input.addEventListener("blur", () => {
+      blurTimeout = setTimeout(() => {
+        dropdown.classList.remove("show");
+        if (selectedItem) {
+          input.value = selectedItem.text || "";
+        }
+      }, 150);
+    });
+
+    function filterDropdownItems(searchTerm) {
+      const term = searchTerm.toLowerCase();
+      Array.from(dropdown.children).forEach((child) => {
+        const itemText = child.textContent.toLowerCase();
+        child.style.display = itemText.includes(term) ? "" : "none";
       });
+    }
 
-      return {
-        container,
-        input,
-        dropdown,
-        set onSelect(callback) {
-          onSelectCallback = callback;
-        },
-        get selected() {
-          return selectedItem;
-        },
-        setSelected: function (item) {
-          selectedItem = item;
-          input.value = item ? item.text : "";
-          filterDropdownItems(input.value);
-          if (onSelectCallback) onSelectCallback(item);
-        },
-        populate: function (items) {
-          dropdown.innerHTML = "";
-          items.forEach((item) => {
-            const option = document.createElement("div");
-            option.className = "dropdown-item";
-            option.textContent = item.text;
-            option.dataset.value = item.value;
-            option.addEventListener("mousedown", (e) => {
-              e.preventDefault();
-              this.setSelected(item);
-              clearTimeout(blurTimeout);
-              dropdown.classList.remove("show");
-              input.blur();
-            });
-            dropdown.appendChild(option);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") e.preventDefault();
+    });
+
+    return {
+      container,
+      input,
+      dropdown,
+      set onSelect(callback) {
+        onSelectCallback = callback;
+      },
+      get selected() {
+        return selectedItem;
+      },
+      setSelected: function (item) {
+        selectedItem = item;
+        input.value = item ? item.text : "";
+        filterDropdownItems(input.value);
+        if (onSelectCallback) onSelectCallback(item);
+      },
+      populate: function (items) {
+        dropdown.innerHTML = "";
+        items.forEach((item) => {
+          const option = document.createElement("div");
+          option.className = "dropdown-item";
+          option.textContent = item.text;
+          option.dataset.value = item.value;
+          option.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            this.setSelected(item);
+            clearTimeout(blurTimeout);
+            dropdown.classList.remove("show");
+            input.blur();
           });
-        },
-      };
-    }
+          dropdown.appendChild(option);
+        });
+      },
+    };
+  }
 
-    function populateDropdown(dropdownInstance, items) {
-      dropdownInstance.populate(items);
-    }
+  function populateDropdown(dropdownInstance, items) {
+    dropdownInstance.populate(items);
+  }
+
+  // --- MutationObserver & Initialization ---
+  const observer = new MutationObserver(() => {
+    initializeEnhancements();
   });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  function initializeEnhancements() {
+    if (document.querySelector(".table-enhancement-container")) return;
+    const tables = document.querySelectorAll("table");
+    if (tables.length > 0) {
+      observer.disconnect();
+      enhanceTables();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", initializeEnhancements);
 })();
