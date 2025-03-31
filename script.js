@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Casphone Connect Table Enhancement
 // @namespace    casphone-table-enhancer
-// @version      1.8
+// @version      1.9.0
 // @description  Adds interactive controls with price copy button above tables on Casphone Connect portal
 // @author       Hossain
 // @match        https://*.casphone.com.au/*
@@ -40,19 +40,23 @@
   // --- Add CSS to the page ---
   const style = document.createElement("style");
   style.textContent = `
-    /* macOS Style Enhancements */
+    /* Style Enhancements */
     :root {
-      --macos-system-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      --macos-border-color: rgba(0, 0, 0, 0.15);
-      --macos-focus-ring-color: rgba(0, 122, 255, 0.3);
-      --macos-control-bg: #f2f2f7;
-      --macos-control-bg-hover: rgba(0, 0, 0, 0.05);
-      --macos-selection-color: rgba(0, 122, 255, 0.1);
-      --macos-border-radius-small: 6px;
-      --macos-border-radius-medium: 8px;
-      --macos-border-radius-large: 10px;
-      --macos-padding-vertical: 6px;
-      --macos-padding-horizontal: 10px;
+      --system-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --border-color: rgba(0, 0, 0, 0.15);
+      --focus-color: rgba(0, 122, 255, 0.3);
+      --bg-color: #f2f2f7;
+      --bg-hover: rgba(0, 0, 0, 0.05);
+      --selection-color: rgba(0, 122, 255, 0.1);
+      --border-radius-sm: 6px;
+      --border-radius-md: 8px;
+      --border-radius-lg: 10px;
+      --padding-y: 6px;
+      --padding-x: 10px;
+      --danger-color: #e53935;
+      --danger-color-hover: #d32f2f;
+      --price-color: #0288d1;
+      --price-color-hover: #0277bd;
     }
 
     .table-enhancement-container {
@@ -69,10 +73,10 @@
       justify-content: center;
       gap: 12px;
       padding: 16px 20px;
-      border-radius: var(--macos-border-radius-large);
-      background-color: var(--macos-control-bg);
+      border-radius: var(--border-radius-lg);
+      background-color: var(--bg-color);
       box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05);
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       font-size: 13px;
       width: fit-content;
       border: 0.5px solid rgba(0,0,0,0.08);
@@ -83,14 +87,97 @@
       display: inline-block;
     }
 
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .options-dropdown-button {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.05);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: background-color 0.2s ease;
+      z-index: 2;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .options-dropdown-button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .options-dropdown-button:active {
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+
+    .options-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      z-index: 1001;
+      display: none;
+      min-width: 160px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 5px;
+      background-color: rgba(248, 248, 248, 0.7);
+      border: 0.5px solid rgba(0, 0, 0, 0.15);
+      border-radius: var(--border-radius-md);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      font-family: var(--system-font);
+      font-size: 13px;
+    }
+
+    @supports ((-webkit-backdrop-filter: blur(25px)) or (backdrop-filter: blur(25px))) {
+      .options-dropdown-menu {
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        backdrop-filter: blur(25px) saturate(180%);
+        background-color: rgba(248, 248, 248, 0.7);
+      }
+    }
+
+    .options-dropdown-menu.show {
+      display: block;
+    }
+
+    .options-dropdown-item {
+      padding: var(--padding-y) var(--padding-x);
+      color: #333;
+      cursor: default;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-radius: var(--border-radius-sm);
+      margin: 0;
+      transition: background-color 0.1s ease;
+    }
+
+    .options-dropdown-item:hover {
+      background-color: var(--selection-color);
+      color: #222;
+    }
+
     .searchable-dropdown input,
     .model-search-input {
-      padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
-      border-radius: var(--macos-border-radius-small);
-      border: 0.5px solid var(--macos-border-color);
+      padding: var(--padding-y) var(--padding-x);
+      padding-right: 26px;
+      border-radius: var(--border-radius-sm);
+      border: 0.5px solid var(--border-color);
       width: 180px;
       font-size: 13px;
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       outline: none;
       background-color: #ffffff;
       transition: box-shadow 0.15s ease-in-out, border-color 0.15s ease-in-out;
@@ -100,7 +187,7 @@
     .searchable-dropdown input:focus,
     .model-search-input:focus {
       border-color: rgba(0, 122, 255, 0.8);
-      box-shadow: 0 0 0 3px var(--macos-focus-ring-color), 0 0.5px 1px rgba(0,0,0,0.05) inset;
+      box-shadow: 0 0 0 3px var(--focus-color), 0 0.5px 1px rgba(0,0,0,0.05) inset;
     }
 
     .searchable-dropdown input:hover,
@@ -120,9 +207,9 @@
       padding: 5px;
       background-color: rgba(248, 248, 248, 0.7);
       border: 0.5px solid rgba(0, 0, 0, 0.15);
-      border-radius: var(--macos-border-radius-medium);
+      border-radius: var(--border-radius-md);
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       font-size: 13px;
     }
 
@@ -139,61 +226,93 @@
     }
 
     .dropdown-item {
-      padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
+      padding: var(--padding-y) var(--padding-x);
       color: #333;
       cursor: default;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      border-radius: var(--macos-border-radius-small);
+      border-radius: var(--border-radius-sm);
       margin: 0;
       transition: background-color 0.1s ease;
     }
 
     .dropdown-item:hover {
-      background-color: var(--macos-selection-color);
+      background-color: var(--selection-color);
       color: #222;
     }
 
     .result-display {
-      padding: var(--macos-padding-vertical) var(--macos-padding-horizontal);
-      background-color: var(--macos-control-bg);
-      border-radius: var(--macos-border-radius-small);
-      border: 0.5px solid var(--macos-border-color);
+      padding: var(--padding-y) var(--padding-x);
+      background-color: var(--bg-color);
+      border-radius: var(--border-radius-sm);
+      border: 0.5px solid var(--border-color);
       min-width: 100px;
-      min-height: calc(13px + 2 * var(--macos-padding-vertical) + 1px);
+      min-height: calc(13px + 2 * var(--padding-y) + 1px);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 500;
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       font-size: 13px;
       color: #333;
       box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset;
       text-align: center;
       cursor: pointer;
-      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+      transition: all 0.15s ease;
       user-select: none;
     }
 
-    .result-display:hover {
-      background-color: #e8e8ed;
-      border-color: rgba(0, 0, 0, 0.25);
+    .result-display:not(.placeholder) {
+      background-color: rgba(2, 136, 209, 0.07);
+      border-color: rgba(2, 136, 209, 0.4);
+      color: var(--price-color);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(2, 136, 209, 0.1);
+      position: relative;
+      overflow: hidden;
     }
 
-    .result-display:active {
-      background-color: #e1e1e6;
-      transform: scale(0.98);
+    .result-display:not(.placeholder):hover {
+      background-color: rgba(2, 136, 209, 0.12);
+      border-color: rgba(2, 136, 209, 0.5);
+      color: var(--price-color-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(2, 136, 209, 0.15);
+    }
+
+    .result-display:not(.placeholder):active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .result-display:not(.placeholder)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+      animation: shimmer 5s infinite ease-in-out;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      20% { left: 100%; }
+      100% { left: 100%; }
     }
 
     .result-display.placeholder {
       color: #777;
       font-weight: 400;
       cursor: default;
+      background-color: var(--bg-color);
     }
     .result-display.placeholder:hover {
-      background-color: var(--macos-control-bg);
-      border-color: var(--macos-border-color);
+      background-color: var(--bg-color);
+      border-color: var(--border-color);
+      transform: none;
+      box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset;
     }
     .result-display.placeholder:active {
       transform: none;
@@ -203,7 +322,7 @@
     .model-search-label {
       font-weight: 500;
       margin-right: 8px;
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       font-size: 13px;
       color: #444;
       user-select: none;
@@ -239,24 +358,52 @@
       gap: 8px;
     }
 
+    /* Reset Button Styles */
+    .reset-button {
+      padding: var(--padding-y) var(--padding-x);
+      border-radius: var(--border-radius-sm);
+      border: 0.5px solid rgba(229, 57, 53, 0.3);
+      background-color: rgba(229, 57, 53, 0.1);
+      color: var(--danger-color);
+      font-family: var(--system-font);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+    }
+
+    .reset-button:hover {
+      background-color: rgba(229, 57, 53, 0.2);
+      border-color: rgba(229, 57, 53, 0.5);
+      color: var(--danger-color-hover);
+    }
+
+    .reset-button:active {
+      transform: scale(0.96);
+    }
+
     /* Toast Notification Styles */
     .clipboard-toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background-color: rgba(40, 40, 40, 0.85);
+      background-color: rgba(40, 40, 40, 0.75);
       color: white;
       padding: 10px 20px;
       border-radius: 15px;
-      font-family: var(--macos-system-font);
+      font-family: var(--system-font);
       font-size: 13px;
       z-index: 9999;
       opacity: 0;
       transition: opacity 0.3s ease, transform 0.3s ease;
       pointer-events: none;
-      backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
       border: 0.5px solid rgba(255, 255, 255, 0.2);
     }
 
@@ -365,6 +512,102 @@
       const rowDropdown = createSearchableDropdown(`row-dropdown-${tableIndex}`, "Search parts/repairs...");
       rowContainer.appendChild(rowDropdown.container);
 
+      // Add options dropdown button to the part search
+      const optionsButton = document.createElement("button");
+      optionsButton.className = "options-dropdown-button";
+      optionsButton.innerHTML = "⋮";
+      optionsButton.title = "Show more options";
+
+      const optionsMenu = document.createElement("div");
+      optionsMenu.className = "options-dropdown-menu";
+      
+      rowDropdown.container.querySelector('.search-input-wrapper').appendChild(optionsButton);
+      rowDropdown.container.appendChild(optionsMenu);
+
+      let blurOptionsTimeout;
+      optionsButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        clearTimeout(blurOptionsTimeout);
+        
+        if (optionsMenu.classList.contains("show")) {
+          optionsMenu.classList.remove("show");
+        } else {
+          updateOptionsMenu();
+          optionsMenu.classList.add("show");
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!optionsMenu.contains(e.target) && e.target !== optionsButton) {
+          optionsMenu.classList.remove("show");
+        }
+      });
+
+      // Function to update the options menu based on selected device
+      function updateOptionsMenu() {
+        optionsMenu.innerHTML = "";
+        
+        if (!selectedColumn) {
+          const emptyOption = document.createElement("div");
+          emptyOption.className = "options-dropdown-item";
+          emptyOption.textContent = "Select a device first";
+          emptyOption.style.fontStyle = "italic";
+          emptyOption.style.color = "#999";
+          optionsMenu.appendChild(emptyOption);
+          return;
+        }
+        
+        // Find all related parts for the selected device
+        const relatedParts = [];
+        for (let i = 1; i < tableRows.length; i++) {
+          const firstCell = tableRows[i].querySelector("td");
+          if (firstCell && !firstCell.textContent.trim().includes("Model Number")) {
+            const partName = firstCell.textContent.trim();
+            const colIndex = parseInt(selectedColumn.value);
+            const cells = tableRows[i].querySelectorAll("td");
+            
+            if (colIndex < cells.length) {
+              const cellValue = cells[colIndex].textContent.trim();
+              if (cellValue && cellValue !== "-" && cellValue !== "N/A") {
+                relatedParts.push({
+                  text: partName,
+                  value: i.toString(),
+                  price: cellValue
+                });
+              }
+            }
+          }
+        }
+        
+        if (relatedParts.length === 0) {
+          const emptyOption = document.createElement("div");
+          emptyOption.className = "options-dropdown-item";
+          emptyOption.textContent = "No options available";
+          emptyOption.style.fontStyle = "italic";
+          emptyOption.style.color = "#999";
+          optionsMenu.appendChild(emptyOption);
+          return;
+        }
+        
+        // Sort by part name
+        relatedParts.sort((a, b) => a.text.localeCompare(b.text));
+        
+        relatedParts.forEach(part => {
+          const option = document.createElement("div");
+          option.className = "options-dropdown-item";
+          option.textContent = `${part.text} - ${part.price}`;
+          option.setAttribute("data-value", part.value);
+          option.addEventListener("click", () => {
+            const matchedRow = rows.find(row => row.value === part.value);
+            if (matchedRow) {
+              rowDropdown.setSelected(matchedRow);
+              optionsMenu.classList.remove("show");
+            }
+          });
+          optionsMenu.appendChild(option);
+        });
+      }
+
       const resultDisplay = document.createElement("div");
       resultDisplay.className = "result-display placeholder";
       resultDisplay.textContent = "Select options";
@@ -377,6 +620,23 @@
           GM_setClipboard(numericValue);
           showToast(`Copied: ${numericValue}`);
         }
+      });
+
+      // Create reset button
+      const resetButton = document.createElement("button");
+      resetButton.className = "reset-button";
+      resetButton.textContent = "Reset";
+      resetButton.addEventListener("click", () => {
+        // Reset all selections
+        columnDropdown.setSelected(null);
+        rowDropdown.setSelected(null);
+        if (modelSearchInput) {
+          modelSearchInput.value = "";
+          modelSearchInput.classList.remove("match-found", "no-match");
+        }
+        resultDisplay.textContent = "Select options";
+        resultDisplay.classList.add("placeholder");
+        resultDisplay.style.color = "";
       });
 
       const columns = [];
@@ -490,6 +750,7 @@
       controlsContainer.appendChild(columnContainer);
       controlsContainer.appendChild(rowContainer);
       controlsContainer.appendChild(resultDisplay);
+      controlsContainer.appendChild(resetButton);
       table.parentNode.insertBefore(containerDiv, table);
       table.dataset.enhanced = "true";
     });
@@ -498,14 +759,22 @@
   function createSearchableDropdown(id, placeholder) {
     const container = document.createElement("div");
     container.className = "searchable-dropdown";
+    
+    const inputWrapper = document.createElement("div");
+    inputWrapper.className = "search-input-wrapper";
+    
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = placeholder;
     input.id = id;
     input.setAttribute("autocomplete", "off");
+    
+    inputWrapper.appendChild(input);
+    
     const dropdown = document.createElement("div");
     dropdown.className = "dropdown-menu";
-    container.appendChild(input);
+    
+    container.appendChild(inputWrapper);
     container.appendChild(dropdown);
 
     let selectedItem = null;
@@ -587,20 +856,35 @@
     dropdownInstance.populate(items);
   }
 
-  // --- MutationObserver & Initialization ---
-  const observer = new MutationObserver(() => {
-    initializeEnhancements();
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-
+  // --- Initialization with faster loading ---
   function initializeEnhancements() {
-    if (document.querySelector(".table-enhancement-container")) return;
     const tables = document.querySelectorAll("table");
     if (tables.length > 0) {
-      observer.disconnect();
       enhanceTables();
     }
   }
 
+  // Run immediately
+  initializeEnhancements();
+
+  // Also watch for dynamic changes
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length) {
+        // Check if new tables were added
+        for (const node of mutation.addedNodes) {
+          if (node.nodeName === 'TABLE' || 
+              (node.nodeType === 1 && node.querySelector('table'))) {
+            enhanceTables();
+            return;
+          }
+        }
+      }
+    }
+  });
+  
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Backup initialization
   document.addEventListener("DOMContentLoaded", initializeEnhancements);
 })();
