@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Casphone Connect Table Enhancement
 // @namespace    casphone-table-enhancer
-// @version      1.9.0
+// @version      1.10.0
 // @description  Adds interactive controls with price copy button above tables on Casphone Connect portal
 // @author       Hossain
 // @match        https://*.casphone.com.au/*
@@ -10,6 +10,30 @@
 
 (function () {
   "use strict";
+
+  // --- Load Figtree font asynchronously ---
+  function loadFigtreeFont() {
+    // Preconnect to Google Fonts
+    const preconnectGoogle = document.createElement('link');
+    preconnectGoogle.rel = 'preconnect';
+    preconnectGoogle.href = 'https://fonts.googleapis.com';
+    document.head.appendChild(preconnectGoogle);
+
+    const preconnectGstatic = document.createElement('link');
+    preconnectGstatic.rel = 'preconnect';
+    preconnectGstatic.href = 'https://fonts.gstatic.com';
+    preconnectGstatic.crossOrigin = 'anonymous';
+    document.head.appendChild(preconnectGstatic);
+
+    // Load Figtree font
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap';
+    document.head.appendChild(fontLink);
+  }
+
+  loadFigtreeFont();
+
 
   // --- Toast Notification Function ---
   let toastTimeout;
@@ -42,7 +66,7 @@
   style.textContent = `
     /* Style Enhancements */
     :root {
-      --system-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --system-font: 'Figtree', "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       --border-color: rgba(0, 0, 0, 0.15);
       --focus-color: rgba(0, 122, 255, 0.3);
       --bg-color: #f2f2f7;
@@ -113,11 +137,11 @@
       font-size: 12px;
       color: #666;
     }
-    
+
     .options-dropdown-button:hover {
       background-color: rgba(0, 0, 0, 0.1);
     }
-    
+
     .options-dropdown-button:active {
       background-color: rgba(0, 0, 0, 0.15);
     }
@@ -308,21 +332,36 @@
       cursor: default;
       background-color: var(--bg-color);
     }
+
     .result-display.placeholder:hover {
       background-color: var(--bg-color);
       border-color: var(--border-color);
       transform: none;
       box-shadow: 0 0.5px 1px rgba(0,0,0,0.05) inset;
     }
+
     .result-display.placeholder:active {
       transform: none;
     }
 
+   .result-display .soldering-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      vertical-align: middle;
+      display: inline-block;
+      opacity: 0.9;
+    }
+
+    .result-display:hover .soldering-icon {
+      opacity: 1;
+    }
     .dropdown-label,
     .model-search-label {
       font-weight: 500;
       margin-right: 8px;
       font-family: var(--system-font);
+      font-weight: 700;
       font-size: 13px;
       color: #444;
       user-select: none;
@@ -520,7 +559,7 @@
 
       const optionsMenu = document.createElement("div");
       optionsMenu.className = "options-dropdown-menu";
-      
+
       rowDropdown.container.querySelector('.search-input-wrapper').appendChild(optionsButton);
       rowDropdown.container.appendChild(optionsMenu);
 
@@ -528,7 +567,7 @@
       optionsButton.addEventListener("click", (e) => {
         e.stopPropagation();
         clearTimeout(blurOptionsTimeout);
-        
+
         if (optionsMenu.classList.contains("show")) {
           optionsMenu.classList.remove("show");
         } else {
@@ -546,7 +585,7 @@
       // Function to update the options menu based on selected device
       function updateOptionsMenu() {
         optionsMenu.innerHTML = "";
-        
+
         if (!selectedColumn) {
           const emptyOption = document.createElement("div");
           emptyOption.className = "options-dropdown-item";
@@ -556,7 +595,7 @@
           optionsMenu.appendChild(emptyOption);
           return;
         }
-        
+
         // Find all related parts for the selected device
         const relatedParts = [];
         for (let i = 1; i < tableRows.length; i++) {
@@ -565,7 +604,7 @@
             const partName = firstCell.textContent.trim();
             const colIndex = parseInt(selectedColumn.value);
             const cells = tableRows[i].querySelectorAll("td");
-            
+
             if (colIndex < cells.length) {
               const cellValue = cells[colIndex].textContent.trim();
               if (cellValue && cellValue !== "-" && cellValue !== "N/A") {
@@ -578,7 +617,7 @@
             }
           }
         }
-        
+
         if (relatedParts.length === 0) {
           const emptyOption = document.createElement("div");
           emptyOption.className = "options-dropdown-item";
@@ -588,10 +627,10 @@
           optionsMenu.appendChild(emptyOption);
           return;
         }
-        
+
         // Sort by part name
         relatedParts.sort((a, b) => a.text.localeCompare(b.text));
-        
+
         relatedParts.forEach(part => {
           const option = document.createElement("div");
           option.className = "options-dropdown-item";
@@ -727,9 +766,32 @@
             const cells = currentTableRows[rowIndex].querySelectorAll("td");
             if (colIndex < cells.length) {
               const cell = cells[colIndex];
-              resultDisplay.textContent = cell.textContent.trim() || "-";
+              const cellText = cell.textContent.trim() || "-";
+
+              // Clear the result display
+              resultDisplay.innerHTML = '';
               resultDisplay.classList.remove("placeholder");
               resultDisplay.style.color = "";
+
+              // Check if part name or price contains an asterisk
+              const partName = selectedRow.text;
+              const needsSoldering = partName.includes('*') || cellText.includes('*');
+
+              // Add soldering icon if needed (on the left side now)
+              if (needsSoldering) {
+                const solderingIcon = document.createElement('img');
+                solderingIcon.className = 'soldering-icon';
+                solderingIcon.src = 'https://img.icons8.com/?size=100&id=JRtPns08wc8m&format=png&color=000000';
+                solderingIcon.alt = 'Soldering required';
+                solderingIcon.title = 'Soldering required for this repair';
+
+                // Add icon first (on the left), then the text
+                resultDisplay.appendChild(solderingIcon);
+              }
+
+              // Create text node for the price and append it
+              const textNode = document.createTextNode(cellText);
+              resultDisplay.appendChild(textNode);
             } else {
               resultDisplay.textContent = "N/A";
               resultDisplay.classList.add("placeholder");
@@ -759,21 +821,21 @@
   function createSearchableDropdown(id, placeholder) {
     const container = document.createElement("div");
     container.className = "searchable-dropdown";
-    
+
     const inputWrapper = document.createElement("div");
     inputWrapper.className = "search-input-wrapper";
-    
+
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = placeholder;
     input.id = id;
     input.setAttribute("autocomplete", "off");
-    
+
     inputWrapper.appendChild(input);
-    
+
     const dropdown = document.createElement("div");
     dropdown.className = "dropdown-menu";
-    
+
     container.appendChild(inputWrapper);
     container.appendChild(dropdown);
 
@@ -873,8 +935,8 @@
       if (mutation.addedNodes.length) {
         // Check if new tables were added
         for (const node of mutation.addedNodes) {
-          if (node.nodeName === 'TABLE' || 
-              (node.nodeType === 1 && node.querySelector('table'))) {
+          if (node.nodeName === 'TABLE' ||
+            (node.nodeType === 1 && node.querySelector('table'))) {
             enhanceTables();
             return;
           }
@@ -882,7 +944,7 @@
       }
     }
   });
-  
+
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Backup initialization
