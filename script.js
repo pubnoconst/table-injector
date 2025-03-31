@@ -1,11 +1,14 @@
 // ==UserScript==
 // @name         Casphone Connect Table Enhancement
 // @namespace    casphone-table-enhancer
-// @version      1.10.0
+// @version      1.11.0
 // @description  Adds interactive controls with price copy button above tables on Casphone Connect portal
 // @author       Hossain
 // @match        https://*.casphone.com.au/*
 // @grant        GM_setClipboard
+// @updateURL    https://raw.githubusercontent.com/pubnoconst/table-injector/main/script.js
+// @downloadURL  https://raw.githubusercontent.com/pubnoconst/table-injector/main/script.js
+// ==/UserScript==setClipboard
 // ==/UserScript==
 
 (function () {
