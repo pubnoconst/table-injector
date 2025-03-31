@@ -4,7 +4,7 @@
 // @version      1.8
 // @description  Adds interactive controls with price copy button above tables on Casphone Connect portal
 // @author       Hossain
-// @match        https://www.connect.casphone.com.au/*
+// @match        https://*.casphone.com.au/*
 // @grant        GM_setClipboard
 // ==/UserScript==
 
